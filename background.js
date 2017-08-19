@@ -59,7 +59,42 @@ function getTabsByGroup() {
   });
 }
 
+function restoreTabGroupsBackup(tabGroups, windows) {
+  for(tabs of windows) {
+    createMissingTabGroups(tabGroups);
+    browser.contextualIdentities.query({}).then(identities => {
+      const nameCookieStoreIdMap = new Map(identities.map(identity => [identity.name, identity.cookieStoreId]));
+
+      tabCreations = [];
+      browser.windows.create({}).then(w => {
+        for(tab of tabs) {
+          const cookieStoreId = nameCookieStoreIdMap.get(tab.group);
+          console.log(`creating tab ${tab.url} in group ${tab.group} (cookieStoreId: ${cookieStoreId})`);
+          tabCreations.push(browser.tabs.create({url: tab.url, cookieStoreId: cookieStoreId, windowId: w.id}));
+        }
+      }, e => console.error(e));
+      Promise.all(tabCreations).catch(e => alert("error restoring backup: ", e))
+    });
+  }
+}
+
 //////////////////////////////////// end of exported functions (again: es6 features not supported yet
+
+const createMissingTabGroups = function(tabGroups) {
+  const colors = ["blue", "turquoise", "green", "yellow", "orange", "red", "pink", "purple"]
+  browser.contextualIdentities.query({}).then(identities => {
+    const nameCookieStoreIdMap = new Map(identities.map(identity => [identity.name, identity.cookieStoreId]));
+    const promises = [];
+
+    for(const tabGroup of tabGroups) {
+      if(!nameCookieStoreIdMap.get(tabGroup)) {
+        console.info(`creating tab group ${tabGroup}`);
+        promises.push(browser.contextualIdentities.create({name: tabGroup, icon: 'circle', color: colors[Math.floor(Math.random() * (8 - 0)) + 0]}));
+      }
+    }
+    Promise.all(promises).catch(e => console.error(e));
+  });
+}
 
 const showHidePageAction = function(activeInfo) {
   browser.tabs.get(activeInfo.tabId).then(tab => {
@@ -90,7 +125,7 @@ const storeScreenshot = function(tabId) {
       .then(() => console.info('succesfully created thumbnail for', tab.url),
             e  => console.error(e));
 
-  }, error => console.error(error));
+  }, e => console.error(e));
 };
 
 
