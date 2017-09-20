@@ -19,7 +19,7 @@ const keyHandling = function(event) {
         console.error('unhandled active element:', document.activeElement);
       }
       window.close();
-    } catch(e){};
+    } catch(e){/**/}
   } else if(event.key == 'Tab') {
   } else if(document.activeElement != searchElement) {
     searchElement.focus();
